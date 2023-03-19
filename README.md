@@ -1,7 +1,6 @@
 ## Introduction
 
-This is a simple pipeline example for a .NET Core application, showing just
-how easy it is to get up and running with .NET development using GitLab.
+This is a Backend security web api service, which is built on .NET 6 (Main Security API service and Email service). It can be used for whole security management of any microservice. It is built on such a way that it could be integrated in future for microservices. API gayeway (Ocelot) will be introduced soon. 
 
 # Reference links
 
@@ -14,21 +13,16 @@ this should all look very familiar.
 
 ## What's contained in this project
 
-The root of the repository contains the out of the `dotnet new console` command,
-which generates a new console application that just prints out "Hello, World."
-It's a simple example, but great for demonstrating how easy GitLab CI is to
-use with .NET. Check out the `Program.cs` and `dotnetcore.csproj` files to
-see how these work.
+It contains 
+1. the core security feature for user management such as registering and updating user, 
+list of all user, get a specific user, delete a user. 
+2. These are the operation can be done by administrator after login. 
+3. Token management is taken care of.
+4. After 3 failed attempts, user can be locked out for 1 min. Also user can modify such settings from appsettings.json. 
+5. Email configuration is well configured. Google email is a populr domain for testing whether email has been pushed or not after 3 consecutive failed attempt for login. Due to this , email settings is initialized for smtp.gmail.com. User can change into their domain and test email sending events.
 
-In addition to the .NET Core content, there is a ready-to-go `.gitignore` file
-sourced from the the .NET Core [.gitignore](https://github.com/dotnet/core/blob/master/.gitignore). This
-will help keep your repository clean of build files and other configuration.
 
-Finally, the `.gitlab-ci.yml` contains the configuration needed for GitLab
-to build your code. Let's take a look, section by section.
 
-First, we note that we want to use the official Microsoft .NET SDK image
-to build our project.
 
 ```
 image: microsoft/dotnet:latest
