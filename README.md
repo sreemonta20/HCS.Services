@@ -5,7 +5,7 @@ This is a Backend security web api service, which is built on .NET 6 (Main Secur
 # Reference links
 
 - [Google](https://www.google.com/)
-- [Knowledge base](#)
+- [Own Knowledge base](#)
 
 If you're new to .NET you'll want to check out the tutorial, but if you're
 already a seasoned developer considering building your own .NET app with GitLab,
@@ -31,5 +31,4 @@ First of all please download this project from github repository. Keep the proje
 4. Then type "Add-Migration SeedingData" on the same console.
 5. After that type  "update-database" on the same console.
 6. Now you can check the whether the database has been created on database along with the migration.
-7. You can install the postman to testing the api service methods according to the explaination mentioned above. postman collection is packed up 
-8. 
+7. You can install the postman to testing the api service methods according to the explaination mentioned above. postman collection is packed up in [Google](https://www.google.com/)
