@@ -31,4 +31,4 @@ First of all please download this project from github repository. Keep the proje
 4. Then type "Add-Migration SeedingData" on the same console.
 5. After that type  "update-database" on the same console.
 6. Now you can check the whether the database has been created on database along with the migration.
-7. You can install the postman to testing the api service methods according to the explaination mentioned above. postman collection is packed up in [Google](https://www.google.com/)
+7. You can install the postman to testing the api service methods according to the explaination mentioned above. postman collection is packed up in [Postman collection](https://github.com/sreemonta20/HCS-Service-Postman-collection))
