@@ -1,5 +1,5 @@
 ﻿using AspNetCoreRateLimit;
-using HCS.EmailService;
+using HCS.EmailService.Service;
 using HCS.Security.Filter;
 using HCS.Security.Helper;
 using HCS.Security.Models.Configuration;
@@ -40,9 +40,10 @@ namespace HCS.Security
         /// <returns>void</returns>
         public void ConfigureServices(IServiceCollection services)
         {
-            
+            services.Configure<AppSettings>(Configuration.GetSection(nameof(AppSettings)));
             #region Reading AppSettings from appsettings.json
             var appSettings = Configuration.GetSection(nameof(AppSettings)).Get<AppSettings>();
+            
             #endregion
 
             #region Registers the given security db context as a service into the services
@@ -51,12 +52,12 @@ namespace HCS.Security
             #endregion
 
             #region Email Configuration
-            var emailConfig = Configuration
-                .GetSection(ConstantSupplier.EMAIL_CONFIG_CLASS_KEY)
-                .Get<EmailConfiguration>();
+            //var emailConfig = Configuration
+            //    .GetSection(ConstantSupplier.EMAIL_CONFIG_CLASS_KEY)
+            //    .Get<EmailConfiguration>();
             //services.AddSingleton(emailConfig);
-            services.AddSingleton<EmailConfiguration>();
-            services.AddScoped<IEmailSender, EmailSender>();
+            //services.AddSingleton<EmailConfiguration>();
+            services.AddScoped<IEmailService, EmailSender>();
             #endregion
 
             services.AddControllers().AddJsonOptions(options =>

@@ -1,6 +1,9 @@
 ﻿using Azure;
 using Azure.Core;
+using FluentEmail.Core.Models;
 using HCS.EmailService;
+using HCS.EmailService.Models;
+using HCS.EmailService.Service;
 using HCS.Security.Helper;
 using HCS.Security.Models.Base;
 using HCS.Security.Models.Configuration;
@@ -11,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
@@ -30,16 +34,18 @@ namespace HCS.Security.Service
     public class UserService : IUserService
     {
         #region Variable declaration & constructor initialization
-        private readonly AppSettings _appSettings;
         public IConfiguration _configuration;
         private readonly HCSSecurityDBContext _context;
-        private readonly IEmailSender _emailService;
-        public UserService(IConfiguration config, HCSSecurityDBContext context, IOptions<AppSettings> options, IEmailSender emailService)
+        private readonly IEmailService _emailService;
+        private readonly AppSettings _appSettings;
+        private readonly ISecurityLogService _securityLogService;
+        public UserService(IConfiguration config, HCSSecurityDBContext context, IEmailService emailService, IOptions<AppSettings> options, ISecurityLogService securityLogService)
         {
-            _configuration = config;
-            _context = context;
+            this._configuration = config;
+            this._context = context;
+            this._emailService = emailService;
             this._appSettings = options.Value;
-            _emailService = emailService;
+            this._securityLogService = securityLogService;
         }
         #endregion
 
@@ -52,7 +58,7 @@ namespace HCS.Security.Service
         /// <returns>DataResponse</returns>
         public async Task<DataResponse> GetUserAsync(string id)
         {
-            var user = await _context.UserInfos.FirstOrDefaultAsync(u => u.Id == new Guid(id));
+            var user = await this._context.UserInfos.FirstOrDefaultAsync(u => u.Id == new Guid(id));
             if (user != null)
             {
                 return new DataResponse { Success = true, Message = ConstantSupplier.GET_USER_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = user };
@@ -67,8 +73,8 @@ namespace HCS.Security.Service
         /// <returns>PageResult<![CDATA[<T>]]></returns>
         public async Task<PageResult<UserInfo>> GetAllUserAsync(PaginationFilter paramRequest)
         {
-            var count = await _context.UserInfos.CountAsync();
-            var Items = await _context.UserInfos.OrderByDescending(x => x.CreatedDate).Skip(((int)paramRequest.PageNumber - 1) * (int)paramRequest.PageSize).Take((int)paramRequest.PageSize).ToListAsync();
+            var count = await this._context.UserInfos.CountAsync();
+            var Items = await this._context.UserInfos.OrderByDescending(x => x.CreatedDate).Skip(((int)paramRequest.PageNumber - 1) * (int)paramRequest.PageSize).Take((int)paramRequest.PageSize).ToListAsync();
             var result = new PageResult<UserInfo>
             {
                 Count = count,
@@ -94,21 +100,30 @@ namespace HCS.Security.Service
             if (request != null)
             {
 
-                var user = await _context.UserInfos.FirstOrDefaultAsync(u => u.UserName == request.UserName);
+                var user = await this._context.UserInfos.FirstOrDefaultAsync(u => u.UserName == request.UserName);
                 if (user != null)
                 {
-                    if (user.LoginFailedAttemptsCount > Convert.ToInt32(_configuration["AppSettings:MaxNumberOfFailedAttempts"]) 
+                    if (user.LoginFailedAttemptsCount > Convert.ToInt32(this._configuration["AppSettings:MaxNumberOfFailedAttempts"]) 
                         && user.LastLoginAttemptAt.HasValue
-                        && DateTime.Now < user.LastLoginAttemptAt.Value.AddMinutes(Convert.ToInt32(_configuration["AppSettings:BlockMinutes"])))
+                        && DateTime.Now < user.LastLoginAttemptAt.Value.AddMinutes(Convert.ToInt32(this._configuration["AppSettings:BlockMinutes"])))
                     {
                         
-                        //var message = new Message(new string[] { "sreemonta.bhowmik@gmail.com" }, "Test email async", "This is the content from our async email.", null);
-                        //await _emailService.SendEmailAsync(message);
-                        return new DataResponse { Success = false, 
-                            Message = String.Format(ConstantSupplier.AUTH_FAILED_ATTEMPT, Convert.ToInt32(_configuration["AppSettings:BlockMinutes"])), 
-                            MessageType = Enum.EnumResponseType.Error, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+                        SendResponse emailResponse = await SendEmail(request, user);
+                        if (!emailResponse.Successful)
+                        {
+                            this._securityLogService.LogError(String.Format("{0}", JsonConvert.SerializeObject(emailResponse, Formatting.Indented)));
+                        }
+
+                        return new DataResponse
+                        {
+                            Success = false,
+                            Message = String.Format(ConstantSupplier.AUTH_FAILED_ATTEMPT, Convert.ToInt32(this._configuration["AppSettings:BlockMinutes"])),
+                            MessageType = Enum.EnumResponseType.Error,
+                            ResponseCode = (int)HttpStatusCode.BadRequest,
+                            Result = null
+                        };
                     }
-                    
+
                     bool verified = BCryptNet.Verify(request.Password, user.Password);
                     if (verified)
                     {
@@ -165,25 +180,25 @@ namespace HCS.Security.Service
                             SaltKey = saltKey,
                             Email = request.Email,
                             UserRole = request.UserRole,
-                            CreatedBy = Convert.ToString(_context.UserInfos.FirstOrDefault(s => s.UserRole.Equals(ConstantSupplier.ADMIN)).Id),
+                            CreatedBy = Convert.ToString(this._context.UserInfos.FirstOrDefault(s => s.UserRole.Equals(ConstantSupplier.ADMIN)).Id),
                             CreatedDate = DateTime.UtcNow
                         };
 
-                        var user = await _context.UserInfos.FirstOrDefaultAsync(u => u.UserName == request.UserName);
+                        var user = await this._context.UserInfos.FirstOrDefaultAsync(u => u.UserName == request.UserName);
                         if (user != null && !String.IsNullOrEmpty(Convert.ToString(user.Id)))
                         {
                             return new DataResponse { Success = false, Message = ConstantSupplier.EXIST_USER, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = request };
                         }
 
-                        await _context.UserInfos.AddAsync(oSaveUserInfo);
-                        await _context.SaveChangesAsync();
+                        await this._context.UserInfos.AddAsync(oSaveUserInfo);
+                        await this._context.SaveChangesAsync();
 
                         request.Id = Convert.ToString(oSaveUserInfo.Id);
                         return new DataResponse { Success = true, Message = ConstantSupplier.REG_USER_SAVE_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = request };
 
                     case ConstantSupplier.UPDATE_KEY:
                         
-                        var oldUser = await _context.UserInfos.FirstOrDefaultAsync(u => u.UserName == (request.UserName));
+                        var oldUser = await this._context.UserInfos.FirstOrDefaultAsync(u => u.UserName == (request.UserName));
 
                         if ((oldUser != null) && (oldUser.Id != new Guid(request.Id)))
                         {
@@ -191,20 +206,20 @@ namespace HCS.Security.Service
                         }
 
 
-                        var dbUserInfo = _context.UserInfos.FirstOrDefault(s => s.Id.Equals(new Guid(request.Id)));
+                        var dbUserInfo = this._context.UserInfos.FirstOrDefault(s => s.Id.Equals(new Guid(request.Id)));
                         dbUserInfo.FullName = request.FullName;
                         dbUserInfo.UserName = request.UserName;
                         dbUserInfo.Email = request.Email;
                         dbUserInfo.UserRole = request.UserRole;
-                        dbUserInfo.UpdatedBy = Convert.ToString(_context.UserInfos.FirstOrDefault(s => s.UserRole.Equals(ConstantSupplier.ADMIN)).Id);
+                        dbUserInfo.UpdatedBy = Convert.ToString(this._context.UserInfos.FirstOrDefault(s => s.UserRole.Equals(ConstantSupplier.ADMIN)).Id);
                         dbUserInfo.UpdatedDate = DateTime.UtcNow;
-                        var isFullNameModified = _context.Entry(dbUserInfo).Property("FullName").IsModified;
-                        var isUserNameModified = _context.Entry(dbUserInfo).Property("UserName").IsModified;
-                        var isEmailModified = _context.Entry(dbUserInfo).Property("Email").IsModified;
-                        var isUserRoleModified = _context.Entry(dbUserInfo).Property("UserRole").IsModified;
-                        var isUpdatedByModified = _context.Entry(dbUserInfo).Property("UpdatedBy").IsModified;
-                        var isUpdatedDateModified = _context.Entry(dbUserInfo).Property("UpdatedDate").IsModified;
-                        _context.SaveChanges();
+                        var isFullNameModified = this._context.Entry(dbUserInfo).Property("FullName").IsModified;
+                        var isUserNameModified = this._context.Entry(dbUserInfo).Property("UserName").IsModified;
+                        var isEmailModified = this._context.Entry(dbUserInfo).Property("Email").IsModified;
+                        var isUserRoleModified = this._context.Entry(dbUserInfo).Property("UserRole").IsModified;
+                        var isUpdatedByModified = this._context.Entry(dbUserInfo).Property("UpdatedBy").IsModified;
+                        var isUpdatedDateModified = this._context.Entry(dbUserInfo).Property("UpdatedDate").IsModified;
+                        this._context.SaveChanges();
 
                         return new DataResponse { Success = true, Message = ConstantSupplier.REG_USER_UPDATE_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = request };
 
@@ -222,12 +237,12 @@ namespace HCS.Security.Service
         /// <returns>DataResponse</returns>
         public async Task<DataResponse> DeleteUserAsync(string id)
         {
-            UserInfo? oUserInfo = await _context.UserInfos.FindAsync(new Guid(id));
+            UserInfo? oUserInfo = await this._context.UserInfos.FindAsync(new Guid(id));
 
             if (oUserInfo != null)
             {
-                _context.UserInfos.Remove(oUserInfo);
-                await _context.SaveChangesAsync();
+                this._context.UserInfos.Remove(oUserInfo);
+                await this._context.SaveChangesAsync();
                 return new DataResponse { Success = true, Message = ConstantSupplier.DELETE_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = oUserInfo };
             }
             return new DataResponse { Success = false, Message = ConstantSupplier.DELETE_FAILED, MessageType = Enum.EnumResponseType.Error, ResponseCode = (int)HttpStatusCode.BadRequest, Result = id };
@@ -242,15 +257,15 @@ namespace HCS.Security.Service
         {
             
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["AppSettings:JWT:Key"]);
+            var key = Encoding.ASCII.GetBytes(this._configuration["AppSettings:JWT:Key"]);
 
             //DateTime expiryTime = DateTime.UtcNow.AddMinutes(10);
-            DateTime expiryTime = DateTime.Now.AddSeconds(Convert.ToDouble(_configuration["AppSettings:AccessTokenExpireTime"]));
+            DateTime expiryTime = DateTime.Now.AddSeconds(Convert.ToDouble(this._configuration["AppSettings:AccessTokenExpireTime"]));
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                        new Claim(JwtRegisteredClaimNames.Sub, _configuration["AppSettings:JWT:Subject"]),
+                        new Claim(JwtRegisteredClaimNames.Sub, this._configuration["AppSettings:JWT:Subject"]),
                         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                         new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
                         new Claim("UserId", user.Id.ToString()),
@@ -270,7 +285,7 @@ namespace HCS.Security.Service
                 return new Token()
                 {
                     access_token = tokenString,
-                    expires_in = Convert.ToInt32(Convert.ToDouble(_configuration["AppSettings:AccessTokenExpireTime"])),
+                    expires_in = Convert.ToInt32(Convert.ToDouble(this._configuration["AppSettings:AccessTokenExpireTime"])),
                     token_type = ConstantSupplier.AUTHORIZATION_TOKEN_TYPE,
                     error = string.Empty,
                     error_description = string.Empty,
@@ -290,12 +305,28 @@ namespace HCS.Security.Service
         /// <returns></returns>
         private async Task TrackAndUpdateLoginAttempts(UserInfo? user)
         {
-            var dbUserInfo = await _context.UserInfos.FirstOrDefaultAsync(u => u.Id == user.Id);
+            var dbUserInfo = await this._context.UserInfos.FirstOrDefaultAsync(u => u.Id == user.Id);
             dbUserInfo.LastLoginAttemptAt = user.LastLoginAttemptAt;
             dbUserInfo.LoginFailedAttemptsCount = user.LoginFailedAttemptsCount;
-            var isLastLoginAttemptAtModified = _context.Entry(dbUserInfo).Property("LastLoginAttemptAt").IsModified;
-            var isLoginFailedAttemptsCountModified = _context.Entry(dbUserInfo).Property("LoginFailedAttemptsCount").IsModified;
-            _context.SaveChanges();
+            var isLastLoginAttemptAtModified = this._context.Entry(dbUserInfo).Property("LastLoginAttemptAt").IsModified;
+            var isLoginFailedAttemptsCountModified = this._context.Entry(dbUserInfo).Property("LoginFailedAttemptsCount").IsModified;
+            this._context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Send email regarding the user blocked after 3 times incorrect login attempt.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        private async Task<SendResponse> SendEmail(LoginRequest request, UserInfo? user)
+        {
+            string body = _emailService.PopulateBody("EmailTemplates/emailblocknotice.htm", user.UserName,
+                                        "User management", "https://localhost:4200/",
+                                        "Please check your username and password. Please wait for mentioned time to re-login");
+            var message = new Message() { To = user.Email, Name = request.UserName, Subject = "Email Blocked", Body = body };
+            var emailResponse = await this._emailService.SendEmailAsync(_appSettings.EmailConfiguration, message);
+            return emailResponse;
         }
         #endregion
     }

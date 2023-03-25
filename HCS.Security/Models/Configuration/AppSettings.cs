@@ -1,4 +1,4 @@
-﻿using HCS.EmailService;
+﻿using HCS.EmailService.Models;
 
 namespace HCS.Security.Models.Configuration
 {
