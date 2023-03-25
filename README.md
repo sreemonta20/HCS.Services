@@ -1,12 +1,11 @@
 ## Introduction
-
-This is a simple pipeline example for a .NET Core application, showing just
-how easy it is to get up and running with .NET development using GitLab.
+[Download Link](https://github.com/sreemonta20/HCS.Services) <br>
+This is a Backend security web api service, which is built on .NET 6 (Main Security API service and Email service). It can be used for whole security management of any microservice. It is built on such a way that it could be integrated in future for microservices. API gayeway (Ocelot) will be introduced soon. Entity framework core code first approach has been used here.
 
 # Reference links
 
-- [GitLab CI Documentation](https://docs.gitlab.com/ee/ci/)
-- [.NET Hello World tutorial](https://dotnet.microsoft.com/learn/dotnet/hello-world-tutorial/)
+- [Google](https://www.google.com/)
+- [Own Knowledge base](#)
 
 If you're new to .NET you'll want to check out the tutorial, but if you're
 already a seasoned developer considering building your own .NET app with GitLab,
@@ -14,65 +13,22 @@ this should all look very familiar.
 
 ## What's contained in this project
 
-The root of the repository contains the out of the `dotnet new console` command,
-which generates a new console application that just prints out "Hello, World."
-It's a simple example, but great for demonstrating how easy GitLab CI is to
-use with .NET. Check out the `Program.cs` and `dotnetcore.csproj` files to
-see how these work.
+It contains 
+1. the core security feature for user management such as registering and updating user, 
+list of all user, get a specific user, delete a user. 
+2. These are the operation can be done by administrator after login. 
+3. Token management is taken care of.
+4. After 3 failed attempts, user can be locked out for 1 min. Also user can modify such settings from appsettings.json. 
+5. Email configuration is well configured. Google email is a populr domain for testing whether email has been pushed or not after 3 consecutive failed attempt for login. Due to this , email settings is initialized for smtp.gmail.com. User can change into their domain and test email sending events.
 
-In addition to the .NET Core content, there is a ready-to-go `.gitignore` file
-sourced from the the .NET Core [.gitignore](https://github.com/dotnet/core/blob/master/.gitignore). This
-will help keep your repository clean of build files and other configuration.
 
-Finally, the `.gitlab-ci.yml` contains the configuration needed for GitLab
-to build your code. Let's take a look, section by section.
+## How to run this backend service along with database
 
-First, we note that we want to use the official Microsoft .NET SDK image
-to build our project.
-
-```
-image: microsoft/dotnet:latest
-```
-
-We're defining two stages here: `build`, and `test`. As your project grows
-in complexity you can add more of these.
-
-```
-stages:
-    - build
-    - test
-```
-
-Next, we define our build job which simply runs the `dotnet build` command and
-identifies the `bin` folder as the output directory. Anything in the `bin` folder
-will be automatically handed off to future stages, and is also downloadable through
-the web UI.
-
-```
-build:
-    stage: build
-    script:
-        - "dotnet build"
-    artifacts:
-      paths:
-        - bin/
-```
-
-Similar to the build step, we get our test output simply by running `dotnet test`.
-
-```
-test:
-    stage: test
-    script: 
-        - "dotnet test"
-```
-
-This should be enough to get you started. There are many, many powerful options 
-for your `.gitlab-ci.yml`. You can read about them in our documentation 
-[here](https://docs.gitlab.com/ee/ci/yaml/).
-
-## Developing with Gitpod
-
-This template repository also has a fully-automated dev setup for [Gitpod](https://docs.gitlab.com/ee/integration/gitpod.html).
-
-The `.gitpod.yml` ensures that, when you open this repository in Gitpod, you'll get a cloud workspace with .NET Core pre-installed, and your project will automatically be built and start running.
+First of all please download this project from github repository. Keep the project in a suitable folder.
+1. Install VS 2022 along with .NET version 6 (cross platform). And install SQL server 2016 and management studio 2018 or any upgraded version.
+2. Open package manager console. select HCS.Security project and type "dotnet restore" to restore all the packages on which the porject is built on.
+3. Modify the environment settings (appsettngs.json) for running the backend service and database on your own environment.
+4. Then type "Add-Migration SeedingData" on the same console.
+5. After that type  "update-database" on the same console.
+6. Now you can check the whether the database has been created on database along with the migration.
+7. You can install the postman to testing the api service methods according to the explaination mentioned above. postman collection is packed up in [Postman collection & DBscript file](https://github.com/sreemonta20/HCS-Service-Postman-collection)
