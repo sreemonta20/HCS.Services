@@ -97,6 +97,7 @@ namespace HCS.Security.Service
         /// <returns>DataResponse</returns>
         public async Task<DataResponse> AuthenticateUserAsync(LoginRequest request)
         {
+            _securityLogService.LogInfo(String.Format(ConstantSupplier.SERVICE_LOGIN_REQ_MSG, JsonConvert.SerializeObject(request, Formatting.Indented)));
             if (request != null)
             {
 
@@ -114,7 +115,7 @@ namespace HCS.Security.Service
                             this._securityLogService.LogError(String.Format("{0}", JsonConvert.SerializeObject(emailResponse, Formatting.Indented)));
                         }
 
-                        return new DataResponse
+                        var oDataResponse = new DataResponse
                         {
                             Success = false,
                             Message = String.Format(ConstantSupplier.AUTH_FAILED_ATTEMPT, Convert.ToInt32(this._configuration["AppSettings:BlockMinutes"])),
@@ -122,6 +123,17 @@ namespace HCS.Security.Service
                             ResponseCode = (int)HttpStatusCode.BadRequest,
                             Result = null
                         };
+                        _securityLogService.LogError(String.Format(ConstantSupplier.SERVICE_LOGIN_FAILED_MSG,  JsonConvert.SerializeObject(oDataResponse, Formatting.Indented)));
+
+                        return oDataResponse;
+                        //return new DataResponse
+                        //{
+                        //    Success = false,
+                        //    Message = String.Format(ConstantSupplier.AUTH_FAILED_ATTEMPT, Convert.ToInt32(this._configuration["AppSettings:BlockMinutes"])),
+                        //    MessageType = Enum.EnumResponseType.Error,
+                        //    ResponseCode = (int)HttpStatusCode.BadRequest,
+                        //    Result = null
+                        //};
                     }
 
                     bool verified = BCryptNet.Verify(request.Password, user.Password);
@@ -133,7 +145,12 @@ namespace HCS.Security.Service
                         JwtSecurityToken token;
                         DateTime expires;
                         var TokenResult = GetToken(user);
-                        return new DataResponse { Success = true, Message = ConstantSupplier.AUTH_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = TokenResult };
+                        //return new DataResponse { Success = true, Message = ConstantSupplier.AUTH_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = TokenResult };
+
+                        var oDataResponse1 = new DataResponse { Success = true, Message = ConstantSupplier.AUTH_SUCCESS, MessageType = Enum.EnumResponseType.Success, ResponseCode = (int)HttpStatusCode.OK, Result = TokenResult };
+                        _securityLogService.LogInfo(String.Format(ConstantSupplier.SERVICE_LOGIN_RES_MSG, JsonConvert.SerializeObject(oDataResponse1, Formatting.Indented)));
+
+                        return oDataResponse1;
                     }
                     else
                     {
@@ -141,16 +158,29 @@ namespace HCS.Security.Service
                         user.LoginFailedAttemptsCount++;
                         await TrackAndUpdateLoginAttempts(user);
 
-                        return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+                        //return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+
+                        var oDataResponse2 = new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+                        _securityLogService.LogError(String.Format(ConstantSupplier.SERVICE_LOGIN_FAILED_MSG, JsonConvert.SerializeObject(oDataResponse2, Formatting.Indented)));
+
+                        return oDataResponse2;
                     }
 
 
                 }
-                
-                return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+
+                //return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+                var oDataResponse3 = new DataResponse { Success = false, Message = ConstantSupplier.AUTH_INVALID_CREDENTIAL, MessageType = Enum.EnumResponseType.Warning, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+                _securityLogService.LogError(String.Format(ConstantSupplier.SERVICE_LOGIN_FAILED_MSG, JsonConvert.SerializeObject(oDataResponse3, Formatting.Indented)));
+
+                return oDataResponse3;
 
             }
-            return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_FAILED, MessageType = Enum.EnumResponseType.Error, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+            //return new DataResponse { Success = false, Message = ConstantSupplier.AUTH_FAILED, MessageType = Enum.EnumResponseType.Error, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+            var oDataResponse4 = new DataResponse { Success = false, Message = ConstantSupplier.AUTH_FAILED, MessageType = Enum.EnumResponseType.Error, ResponseCode = (int)HttpStatusCode.BadRequest, Result = null };
+            _securityLogService.LogError(String.Format(ConstantSupplier.SERVICE_LOGIN_FAILED_MSG, JsonConvert.SerializeObject(oDataResponse4, Formatting.Indented)));
+
+            return oDataResponse4;
         }
 
 

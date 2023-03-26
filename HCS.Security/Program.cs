@@ -40,6 +40,7 @@ using Serilog.Sinks.MSSqlServer;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -50,7 +51,7 @@ namespace HCS.Security
 {
     public class Program
     {
-        
+
         public static void Main(string[] args)
         {
             IConfiguration config = new ConfigurationBuilder()
@@ -58,15 +59,16 @@ namespace HCS.Security
                   .AddJsonFile(ConstantSupplier.APP_SETTINGS_FILE_NAME)
                   .Build();
 
-            try
-            {
-                Log.Logger = new LoggerConfiguration()
+
+            Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(config)
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithEnvironmentUserName()
                 .CreateLogger();
 
+            try
+            {
 
 
                 Log.Information(ConstantSupplier.LOG_INFO_APP_START_MSG);
@@ -102,13 +104,7 @@ namespace HCS.Security
                     webBuilder.UseStartup<Startup>();
                     webBuilder.UseContentRoot(Directory.GetCurrentDirectory());
                 }).UseSerilog();
-            //.ConfigureServices((hostingContext, services) =>
-            //{
-            //    services.Configure<AppSettings>(hostingContext.Configuration.GetSection(nameof(AppSettings)));
 
-            //    services.AddTransient<IUserService, UserService>();
-            //    services.AddTransient<ISecurityLogService, SecurityLogService>();
-            //});
     }
 }
 

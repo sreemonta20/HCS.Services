@@ -54,8 +54,14 @@ namespace HCS.Security.Controllers
             catch (Exception Ex)
             {
                 _securityLogService.LogError(Ex.Message);
-                return new DataResponse { Message = Ex.Message, Success = false, MessageType = Enum.EnumResponseType.Error, 
-                    ResponseCode = (int)HttpStatusCode.InternalServerError, Result=null };
+                return new DataResponse
+                {
+                    Message = Ex.Message,
+                    Success = false,
+                    MessageType = Enum.EnumResponseType.Error,
+                    ResponseCode = (int)HttpStatusCode.InternalServerError,
+                    Result = null
+                };
             }
             return response;
         }
@@ -77,9 +83,9 @@ namespace HCS.Security.Controllers
             {
                 PaginationFilter oPaginationFilter = new() { PageNumber = pageNumber, PageSize = pageSize };
                 var result = await _userService.GetAllUserAsync(oPaginationFilter);
-                if((result != null) && (result.Count > 0))
+                if ((result != null) && (result.Count > 0))
                 {
-                   return response = new()
+                    return response = new()
                     {
                         Success = true,
                         Message = ConstantSupplier.GET_USER_LIST_SUCCESS,
@@ -126,6 +132,8 @@ namespace HCS.Security.Controllers
         [ServiceFilter(typeof(ValidateModelAttribute))]
         public async Task<object> Login(LoginRequest request)
         {
+            _securityLogService.LogInfo(ConstantSupplier.LOGIN_STARTED_INFO_MSG);
+            _securityLogService.LogInfo(String.Format(ConstantSupplier.LOGIN_REQ_MSG,JsonConvert.SerializeObject(request,Formatting.Indented)));
             DataResponse response;
             try
             {
@@ -133,8 +141,7 @@ namespace HCS.Security.Controllers
             }
             catch (Exception Ex)
             {
-                _securityLogService.LogError(Ex.Message);
-                return new DataResponse
+                var oDataResponse = new DataResponse
                 {
                     Message = Ex.Message,
                     Success = false,
@@ -142,7 +149,18 @@ namespace HCS.Security.Controllers
                     ResponseCode = (int)HttpStatusCode.InternalServerError,
                     Result = null
                 };
+                _securityLogService.LogError(String.Format(ConstantSupplier.LOGIN_EXCEPTION_MSG,Ex.Message, JsonConvert.SerializeObject(oDataResponse,Formatting.Indented)));
+                return oDataResponse;
+                //return new DataResponse
+                //{
+                //    Message = Ex.Message,
+                //    Success = false,
+                //    MessageType = Enum.EnumResponseType.Error,
+                //    ResponseCode = (int)HttpStatusCode.InternalServerError,
+                //    Result = null
+                //};
             }
+            _securityLogService.LogInfo(String.Format(ConstantSupplier.LOGIN_RES_MSG, JsonConvert.SerializeObject(response, Formatting.Indented)));
             return response;
         }
 

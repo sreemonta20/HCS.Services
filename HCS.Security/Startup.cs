@@ -41,9 +41,9 @@ namespace HCS.Security
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<AppSettings>(Configuration.GetSection(nameof(AppSettings)));
+
             #region Reading AppSettings from appsettings.json
             var appSettings = Configuration.GetSection(nameof(AppSettings)).Get<AppSettings>();
-            
             #endregion
 
             #region Registers the given security db context as a service into the services
@@ -52,11 +52,6 @@ namespace HCS.Security
             #endregion
 
             #region Email Configuration
-            //var emailConfig = Configuration
-            //    .GetSection(ConstantSupplier.EMAIL_CONFIG_CLASS_KEY)
-            //    .Get<EmailConfiguration>();
-            //services.AddSingleton(emailConfig);
-            //services.AddSingleton<EmailConfiguration>();
             services.AddScoped<IEmailService, EmailSender>();
             #endregion
 
@@ -148,7 +143,7 @@ namespace HCS.Security
             services.AddTransient<ISecurityLogService, SecurityLogService>();
             services.AddTransient<IUserService, UserService>();
             services.AddScoped<ValidateModelAttribute>();
-            
+
             #endregion
 
 
@@ -226,9 +221,11 @@ namespace HCS.Security
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
             #region Inject cors middleware into the request pipeline
             app.UseCors(ConstantSupplier.CORSS_POLICY_NAME);
             #endregion
+
             #region Inject authentication and authorization middleware into the request pipeline
             app.UseAuthentication();
             app.UseAuthorization();
@@ -241,8 +238,6 @@ namespace HCS.Security
             #region Inject serilog middleware into the request pipeline
             app.UseSerilogRequestLogging();
             #endregion
-
-            
 
             app.UseEndpoints(endpoints =>
             {

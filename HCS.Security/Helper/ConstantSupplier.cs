@@ -38,6 +38,15 @@
         public const string LOG_INFO_APPEND_LINE_THIRD_VERSION = "**                    [Version 1.0.0]                               **";
         public const string LOG_INFO_APPEND_LINE_FOURTH_COPYRIGHT = "**  ©2022-2023 Health Care Solutions. All rights reserved           **";
         public const string LOG_INFO_APPEND_LINE_END = "**********************************************************************";
+
+        //api/User/login
+        public const string LOGIN_STARTED_INFO_MSG = "Login api method started.\n";
+        public const string LOGIN_REQ_MSG = "Login api method request is: \n{0}\n";
+        public const string LOGIN_EXCEPTION_MSG = "Exception is: \t\t\t{0}\nResponse is: \n{1}\n";
+        public const string SERVICE_LOGIN_REQ_MSG = "Authenticate (User service) method request is: \n{0}\n";
+        public const string SERVICE_LOGIN_FAILED_MSG = "Response is: \n{1}\n";
+        public const string SERVICE_LOGIN_RES_MSG = "Authenticate (User service) method response is: \n{0}\n";
+        public const string LOGIN_RES_MSG = "Login api method response is: \n{0}\n";
         #endregion
 
 
