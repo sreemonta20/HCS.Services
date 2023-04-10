@@ -1,11 +1,21 @@
-﻿namespace HCS.Security.Models.Request
+﻿using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+namespace HCS.Security.Models.Request
 {
     /// <summary>
     /// LoginRequest is extension of  <see cref="UserInfo"/>.
     /// </summary>
     public class LoginRequest
     {
-        public string? UserName { get; set; }
-        public string? Password { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        //[Required]
+        //[JsonPropertyName("UserName")]
+        public string UserName { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        //[JsonPropertyName("Password")]
+        //[Required]
+        public string Password { get; set; }
     }
 }

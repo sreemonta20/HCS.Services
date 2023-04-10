@@ -13,5 +13,7 @@ namespace HCS.Security.Models.Configuration
         public int MaxNumberOfFailedAttempts { get; set; }
         public int BlockMinutes { get; set; }
         public EmailConfiguration? EmailConfiguration { get; set; }
+        public string? EncryptKey { get; set; }
+        public string? EncryptIV { get; set; }
     }
 }

@@ -83,6 +83,7 @@ namespace HCS.Security
 
                 // It aggregates all of the middlewares on functionality and puts into the applications
                 CreateHostBuilder(args).Build().Run();
+                
                 //BuildWebHost(args).Run();
             }
             catch (Exception Ex)

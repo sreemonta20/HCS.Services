@@ -8,8 +8,12 @@ using HCS.Security.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json.Serialization;
 using Serilog;
 using StackExchange.Redis.Extensions.Newtonsoft;
 using System.Configuration;
@@ -55,10 +59,19 @@ namespace HCS.Security
             services.AddScoped<IEmailService, EmailSender>();
             #endregion
 
+            //services.AddControllers().AddJsonOptions(options =>
+            //{
+            //    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            //    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            //});
+
+            //services.AddControllers().AddNewtonsoftJson();
             services.AddControllers().AddJsonOptions(options =>
             {
-                options.JsonSerializerOptions.PropertyNamingPolicy = null;
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            }).AddNewtonsoftJson(o =>
+            {
+                o.SerializerSettings.ContractResolver = new DefaultContractResolver();
             });
 
             #region Register Cors into the service
@@ -133,17 +146,24 @@ namespace HCS.Security
             //});
             #endregion
 
+            services.AddHttpContextAccessor();
+
             #region Dependency Injection added into service
             //services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             //services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
             //services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
             //services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
             //services.AddInMemoryRateLimiting();
-
+            //services.Add(new EncryptDecryptMiddleware(appSettings.EncryptKey, appSettings.EncryptIV));
+            //services.Add(new DelegatingHandlerProxy<EncryptDecryptMiddleware>(appSettings.EncryptKey, appSettings.EncryptIV));
+            //services.AddSingleton<IEncryptDecryptService, EncryptDecryptService>();
+            //services.AddSingleton(new EncryptDecryptService(appSettings.EncryptKey, appSettings.EncryptIV));
+            //services.Add(new EncryptDecryptMiddleware(new EncryptDecryptService(appSettings.EncryptKey, appSettings.EncryptIV)));
             services.AddTransient<ISecurityLogService, SecurityLogService>();
             services.AddTransient<IUserService, UserService>();
             services.AddScoped<ValidateModelAttribute>();
-
+            //services.AddTransient<EncryptDecryptMiddleware>();
+            //services.AddHttpClient("myclient").AddHttpMessageHandler<EncryptDecryptMiddleware>();
             #endregion
 
 
@@ -207,19 +227,21 @@ namespace HCS.Security
         /// <returns>void</returns>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-
+            //app.UseMiddleware<EncryptDecryptMiddleware>();
+            //app.UseMiddleware<EncryptDecryptMiddleware>();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
 
                 #region Inject or enable Swagger middleware into the request pipeline to serve generated swagger as a JSON endpoint in case of development env.
                 app.UseSwagger();
+               
                 app.UseSwaggerUI(c => c.SwaggerEndpoint(ConstantSupplier.SWAGGER_HCS_API_SERVICE_DOC_END_POINT,
                     ConstantSupplier.SWAGGER_HCS_API_SERVICE_DOC_END_POINT_NAME));
                 #endregion
             }
             app.UseHttpsRedirection();
-
+            app.UseMiddleware<EncryptDecryptMiddleware>();
             app.UseRouting();
 
             #region Inject cors middleware into the request pipeline
@@ -229,16 +251,18 @@ namespace HCS.Security
             #region Inject authentication and authorization middleware into the request pipeline
             app.UseAuthentication();
             app.UseAuthorization();
+            
             #endregion
 
             app.UseResponseCompression();
-
+            
+            //app.UseMiddleware<EncryptDecryptMiddleware>();
             app.UseStaticFiles();
 
             #region Inject serilog middleware into the request pipeline
             app.UseSerilogRequestLogging();
             #endregion
-
+            
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

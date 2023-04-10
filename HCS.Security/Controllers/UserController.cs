@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Net;
+using System.Text.Json.Nodes;
 
 namespace HCS.Security.Controllers
 {
@@ -130,13 +131,18 @@ namespace HCS.Security.Controllers
         [HttpPost]
         [Route(ConstantSupplier.POST_AUTH_ROUTE_NAME)]
         [ServiceFilter(typeof(ValidateModelAttribute))]
-        public async Task<object> Login(LoginRequest request)
+        public async Task<object> Login([FromBody] LoginRequest request)
+        //public async Task<object> Login([FromBody] string request)
         {
+            //LoginRequest request
             _securityLogService.LogInfo(ConstantSupplier.LOGIN_STARTED_INFO_MSG);
             _securityLogService.LogInfo(String.Format(ConstantSupplier.LOGIN_REQ_MSG,JsonConvert.SerializeObject(request,Formatting.Indented)));
             DataResponse response;
             try
             {
+
+                //var loginRequest = JsonConvert.DeserializeObject<LoginRequest>(request);
+                //response = await _userService.AuthenticateUserAsync(loginRequest);
                 response = await _userService.AuthenticateUserAsync(request);
             }
             catch (Exception Ex)
